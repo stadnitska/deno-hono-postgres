@@ -1,51 +1,38 @@
-<<<<<<< HEAD
-import { Hono } from "hono";
-import { Client } from "postgres";
-=======
-import { Hono } from "https://deno.land/x/hono@v3.11.10/mod.js";
-import { Client } from "https://deno.land/x/postgres@v0.17.0/mod.js";
->>>>>>> 7c4ee5c (trigger redeploy)
+import { Hono } from "@hono/hono";
+import postgres from "postgres";
+
+const sql = postgres({
+  host: "database.cs.aalto.fi",
+  port: 54321,
+  database: "dbbf1685efb6024e",
+  username: "dbbf1685efb6024e",
+  password: "dbe4ebd6a8cbd347",
+  max: 2, // ✅ максимум 2 соединения
+  max_lifetime: 10, // ✅ каждое живёт 10 сек
+});
 
 const app = new Hono();
 
-const client = new Client({
-  hostname: Deno.env.get("PGHOST"),
-<<<<<<< HEAD
-  user: Deno.env.get("PGUSER"),
-  password: Deno.env.get("PGPASSWORD"),
-  database: Deno.env.get("PGDATABASE"),
-  port: Number(Deno.env.get("PGPORT")),
-  ssl: true,
-});
-
-await client.connect();
-=======
-  port: Deno.env.get("PGPORT"),
-  user: Deno.env.get("PGUSER"),
-  password: Deno.env.get("PGPASSWORD"),
-  database: Deno.env.get("PGDATABASE"),
-});
->>>>>>> 7c4ee5c (trigger redeploy)
-
-app.post("/", async (c) => {
-  const body = await c.req.json();
-  const query = body.query;
+app.post("/*", async (c) => {
   try {
-<<<<<<< HEAD
-    const { query } = await c.req.json();
-    const result = await client.queryObject(query);
-    return c.json(result.rows);
+    const body = await c.req.json();
+    const result = await sql.unsafe(body.query);
+    return c.json({ result });
   } catch (err) {
-    return c.json({ error: err.message }, 500);
-=======
-    await client.connect();
-    const result = await client.queryObject(query);
-    await client.end();
-    return c.json({ result: result.rows });
-  } catch (error) {
-    return c.json({ error: error.message });
->>>>>>> 7c4ee5c (trigger redeploy)
+    return c.json({ error: err.message });
   }
 });
 
-export default app;
+app.get("/*", (c) =>
+  c.html(`
+    <html>
+      <head><title>Database Demo</title></head>
+      <body>
+        <h1>Hello!</h1>
+        <p>Try POSTing JSON {"query":"SELECT 1+1 AS sum"}</p>
+      </body>
+    </html>
+  `)
+);
+
+Deno.serve(app.fetch);
