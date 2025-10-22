@@ -1,3 +1,4 @@
 import app from "./app.js";
 
-export default app; // без Deno.serve()
+console.log("Listening on http://localhost:8080/");
+Deno.serve({ port: 8080 }, app.fetch);
