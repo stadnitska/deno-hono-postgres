@@ -8,25 +8,25 @@ const BANNED_WORDS = [
   "execute", "call", "do", "set", "comment"
 ];
 
-const query = async (query) => {
+// ✅ создаём одно соединение и переиспользуем
+const sql = postgres({
+  host: Deno.env.get("PGHOST"),
+  port: Deno.env.get("PGPORT"),
+  database: Deno.env.get("PGDATABASE"),
+  username: Deno.env.get("PGUSER"),
+  password: Deno.env.get("PGPASSWORD"),
+  max: 1,
+  max_lifetime: 5
+});
+
+const query = async (queryText) => {
   for (const word of BANNED_WORDS) {
-    if (query.toLowerCase().includes(word)) {
+    if (queryText.toLowerCase().includes(word)) {
       throw new Error(`You cannot ${word} data`);
     }
   }
 
-  const sql = postgres({
-    host: Deno.env.get("PGHOST"),
-    port: Deno.env.get("PGPORT"),
-    database: Deno.env.get("PGDATABASE"),
-    username: Deno.env.get("PGUSER"),
-    password: Deno.env.get("PGPASSWORD"),
-    max: 2,              // ✅ максимум 2 соединения
-    max_lifetime: 10     // ✅ живут 10 секунд
-  });
-
-  const result = await sql.unsafe(query);
-  await sql.end(); // ✅ закрываем соединение после запроса
+  const result = await sql.unsafe(queryText);
   return result;
 };
 
