@@ -1,57 +1,23 @@
-import { Hono } from "@hono/hono";
-import postgres from "postgres";
-
-const BANNED_WORDS = [
-  "delete", "update", "insert", "drop", "alter", "create",
-  "truncate", "replace", "merge", "grant", "revoke",
-  "transaction", "commit", "rollback", "savepoint", "lock",
-  "execute", "call", "do", "set", "comment"
-];
-
-// ✅ создаём одно соединение и переиспользуем
-const sql = postgres({
-  host: Deno.env.get("PGHOST"),
-  port: Deno.env.get("PGPORT"),
-  database: Deno.env.get("PGDATABASE"),
-  username: Deno.env.get("PGUSER"),
-  password: Deno.env.get("PGPASSWORD"),
-  max: 1,
-  max_lifetime: 5
-});
-
-const query = async (queryText) => {
-  for (const word of BANNED_WORDS) {
-    if (queryText.toLowerCase().includes(word)) {
-      throw new Error(`You cannot ${word} data`);
-    }
-  }
-
-  const result = await sql.unsafe(queryText);
-  return result;
-};
+import { Hono } from "https://deno.land/x/hono/mod.ts";
+import { Client } from "https://deno.land/x/postgres/mod.ts";
 
 const app = new Hono();
 
-app.get("/", (c) =>
-  c.html(`
-    <html>
-      <head><title>Hello DB!</title></head>
-      <body>
-        <h1>Database connection test</h1>
-        <p>Send a POST request with {"query": "SELECT 1 + 1 AS sum"}.</p>
-      </body>
-    </html>
-  `)
-);
-
-app.post("/", async (c) => {
-  try {
-    const body = await c.req.json();
-    const result = await query(body.query);
-    return c.json({ result });
-  } catch (err) {
-    return c.json({ error: err.message });
-  }
+const client = new Client({
+  user: Deno.env.get("PGUSER"),
+  password: Deno.env.get("PGPASSWORD"),
+  database: Deno.env.get("PGDATABASE"),
+  hostname: Deno.env.get("PGHOST"),
+  port: Number(Deno.env.get("PGPORT")),
 });
 
-Deno.serve(app.fetch);
+app.post("/", async (c) => {
+  const body = await c.req.json();
+  const result = await client.queryObject(body.query);
+  return c.json({ result: result.rows });
+});
+
+// 🟢 Вот эта часть важна
+const port = Deno.env.get("PORT") || 3000;
+console.log(`Server running on port ${port}`);
+Deno.serve({ port: Number(port) }, app.fetch);
