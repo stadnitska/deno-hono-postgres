@@ -1,6 +1,9 @@
 {
+  "tasks": {
+    "dev": "deno run --allow-net --allow-env --env-file=.env app-run.js"
+  },
   "imports": {
-    "@hono/hono": "jsr:@hono/hono",
-    "postgres": "npm:postgres"
+    "hono": "https://deno.land/x/hono@v4.5.4/mod.ts",
+    "postgres": "https://deno.land/x/postgres@v0.17.0/mod.ts"
   }
 }
